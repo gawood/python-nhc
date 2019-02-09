@@ -14,7 +14,7 @@ nhcHub =nhc.NhcHub("192.168.42.44",8000)
 # worker = threading.Thread(target=nhcHub.run())
 # worker.start()
 # worker.setDaemon(True)
-logger.info(">> Test: {}".format(nhcHub.getShutters()))
+logger.info(">> Test: {}".format(nhcHub.getActions()))
 # time.sleep(30)
 # logger.info(">> Test: {}".format(nhcHub.getAction(73)))
 

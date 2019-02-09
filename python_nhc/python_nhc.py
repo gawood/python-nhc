@@ -1,10 +1,10 @@
-import sys
-import time
+# -*- coding: utf-8 -*-
+
+import json
 import logging
 import threading
-import socket
-import json
-from .nhcAction import NhcAction
+from .nhc_connection import NhcConnection
+from .nhc_action import NhcAction
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -13,39 +13,42 @@ logger.setLevel(logging.INFO)
 class NhcHub:
 
     def __init__(self, host, port=8000):
-        self.host = host
-        self.port = port
-        self.actions = self.listActions()
+        self._host = host
+        self._port = port
+        self._actions = self.listActions()
         daemon = threading.Thread(name='daemon', target=self.run)
         daemon.setDaemon(True)
         daemon.start()
         return None
 
     def run(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((self.host, self.port))
-        logger.info(">Connection on {}:{}".format(self.host, self.port))
-        s.send(u"{\"cmd\": \"startevents\"}".encode('utf-8'))
+        connection = NhcConnection(self._host, self._port)
+        logger.info(">Connection on {}:{}".format(self._host, self._port))
+        connection.send("{\"cmd\": \"startevents\"}")
         while True:
-            data = s.recv(4096)
-            d = json.loads(data)
-            logger.info(">> Data recieved: {}".format(d))
-            if 'event' in d.keys():
-                d_ev = json.loads(json.dumps(d['data'][0]))
-                actionId = d_ev['id']
-                newVal = d_ev['value1']
-                logger.info(">>new event: id:{} , val:{}".format(
-                    actionId, newVal))
-                a = self.getAction(actionId)
-                a.setState(newVal)
-        s.close()
+            data = connection.receive()
+            if not data:
+                break
+            elif not data.isspace():
+                d = json.loads(data)
+                logger.info(">> Data recieved: {}".format(d))
+                # Modify status of action when event recieved
+                if 'event' in d.keys():
+                    d_ev = json.loads(json.dumps(d['data'][0]))
+                    actionId = d_ev['id']
+                    newVal = d_ev['value1']
+                    logger.info(">>new event: id:{} , val:{}".format(
+                        actionId, newVal))
+                    a = self.getAction(actionId)
+                    a.setState(newVal)
+        connection.close()
         return None
 
     def getActions(self):
-        return self.actions
+        return self._actions
 
     def getAction(self, actionId):
-        return self.actions[actionId]
+        return self._actions[actionId]
 
     def getLights(self):
         lights = []
@@ -62,26 +65,12 @@ class NhcHub:
         return shutters
 
     def listActions(self):
-            output = ""
             actions = {}
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((self.host, self.port))
-            s.send(u"{\"cmd\": \"listactions\"}".encode('utf-8'))
-            while True:
-                d = s.recv(2)
-                if len(d) < 2:
-                    #logger.info(">> Data recieved: {}".format(output))
-                    s.close()
-                    break
-                output = output + "{}".format(d)
-            s.close()
-            try:
-                output = output.decode('ascii', 'ignore')
-            except AttributeError:
-                pass
-            logger.info(">> Data recieved: {}".format(output))
-            output = json.loads(output)
-            for a in output['data']:
+            connection = NhcConnection(self._host, self._port)
+            data = connection.send("{\"cmd\": \"listactions\"}")
+            logger.info(">> Data recieved: {}".format(data))
+            data = json.loads(data)
+            for a in data['data']:
                 actionId = a['id']
                 actionName = a['name']
                 actionType = a['type']
@@ -91,46 +80,16 @@ class NhcHub:
             return actions
 
     def listLocations(self):
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((self.host, self.port))
-            logger.info(">Connection on {}:{}".format(self.host, self.port))
-            s.send(u"{\"cmd\": \"listlocations\"}".encode('utf-8'))
-            d = json.loads(s.recv(4096))
-            logger.info(">> Data recieved: {}".format(d))
+            connection = NhcConnection(self._host, self._port)
+            data = connection.send("{\"cmd\": \"listlocations\"}")
+            logger.info(">> Data recieved: {}".format(data))
             s.close()
             return None
 
     def modifyActionState(self, actionId, newState):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((self.host, self.port))
-        logger.info(">Connection on {}:{}".format(self.host, self.port))
         a = self.getAction(actionId)
         command = a.getNewStateCommand(newState)
-        s.send(command.encode('utf-8'))
-        d = json.loads(s.recv(4096))
-        logger.info(">> Data recieved: {}".format(d))
-        s.close()
+        connection = NhcConnection(self._host, self._port)
+        data = connection.send(command)
+        logger.info(">> Data recieved: {}".format(data))
         return None
-
-
-# def main(argv):
-#     logger.info("> nhc Daemon")
-#     threading.current_thread()
-#     nhcHub = NhcHub("192.168.12.4",8000)
-#     print('pwet')
-#     # worker = threading.Thread(target=nhcHub.run())
-#     # worker.start()
-#     # worker.setDaemon(True)
-#     logger.info(">> Test: {}".format(nhcHub.getAction(45)))
-#     time.sleep(30)
-#     logger.info(">> Test: {}".format(nhcHub.getAction(73)))
-#
-#
-# if __name__ == "__main__":
-#     logFile = logging.FileHandler('out.log')
-#     logFile.setLevel(logging.INFO)
-#     logger.addHandler(logFile)
-#     ch = logging.StreamHandler()
-#     ch.setLevel(logging.DEBUG)
-#     logger.addHandler(ch)
-#     main(sys.argv[1:])
