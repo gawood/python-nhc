@@ -1,11 +1,12 @@
 [tool.poetry]
 name = "python-nhc"
 version = "0.1.0"
-description = ""
-authors = ["Gaëtan Warmont"]
+description = "Python controller for a Niko Home Control installation"
+authors = ["gawood"]
 
 [tool.poetry.dependencies]
-python = "*"
+python = "^3.6"
+nclib = "*0.8.2.post1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"
