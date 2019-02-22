@@ -6,9 +6,9 @@ class NhcAction:
     def __init__(self, id, name, type, state):
         """NhcAction constructor"""
         self._id = id
-        self._name = name
-        self._type = type
-        self._state = state
+        self._name = str(name)
+        self._type = str(type)
+        self._state = str(state)
 
     def __repr__(self):
         """Object representation"""
@@ -18,7 +18,7 @@ class NhcAction:
             self._state)
 
     def setState(self, newState):
-        self._state = newState
+        self._state = str(newState)
         return 1
 
     def getNewStateCommand(self, expectedNewState):

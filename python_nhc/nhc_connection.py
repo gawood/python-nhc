@@ -2,11 +2,11 @@
 
 import nclib
 
-NHC_PORT = "8000"
+NHC_PORT = 8000
 
 class NhcConnection:
 
-    def __init__(self, host, port=NHC_PORT):
+    def __init__(self, host, port = NHC_PORT):
         self._socket = nclib.Netcat((host, port), udp=False)
 
     def __del__(self):
