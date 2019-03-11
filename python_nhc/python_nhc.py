@@ -4,7 +4,7 @@ import json
 import logging
 import threading
 from .nhc_connection import NhcConnection
-from .nhc_action import NhcAction
+from .nhc_action import NhcAction, NhcLight
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -80,7 +80,10 @@ class NhcHub:
             actionName = a['name']
             actionType = a['type']
             actionState = a['value1']
-            actions[actionId] = NhcAction(actionId, actionName, actionType, actionState)
+            if str(actionType) == '1':
+                actions[actionId] = NhcLight(self, actionId, actionName, actionType, actionState)
+            else:
+                actions[actionId] = NhcAction(self, actionId, actionName, actionType, actionState)
             logger.debug(">> Action created: {}".format(actions[actionId]))
         return actions
 
@@ -93,6 +96,12 @@ class NhcHub:
     def modifyActionState(self, actionId, newState):
         a = self.getAction(actionId)
         command = a.getNewStateCommand(newState)
+        connection = NhcConnection(self._host, self._port)
+        data = connection.send(command)
+        logger.debug(">> Data recieved: {}".format(data))
+        return None
+
+    def sendHubCommand(self, command):
         connection = NhcConnection(self._host, self._port)
         data = connection.send(command)
         logger.debug(">> Data recieved: {}".format(data))
