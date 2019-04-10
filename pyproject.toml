@@ -3,6 +3,7 @@ name = "python-nhc"
 version = "0.2.0"
 description = "Python controller for a Niko Home Control installation"
 authors = ["gawood"]
+repository = "https://github.com/gawood/python-nhc"
 
 [tool.poetry.dependencies]
 python = "^3.6"
